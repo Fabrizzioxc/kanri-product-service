@@ -25,5 +25,5 @@ npm run dev
 
 ⚙️ .env de ejemplo
 
-DATABASE_URL="postgresql://kanri:kanri123@localhost:5432/kanri_main?schema=public"
+DATABASE_URL="postgresql://kanri:kanri123@localhost:5432/tu_basededatos?schema=public"
 PORT=3001
