@@ -20,5 +20,8 @@ export const update = async (id: string, data: unknown) => {
 };
 
 export const remove = async (id: string) => {
+  const product = await prisma.product.findUnique({ where: { id } });
+  if (!product) throw new Error("Producto no encontrado.");
   await prisma.product.delete({ where: { id } });
 };
+
