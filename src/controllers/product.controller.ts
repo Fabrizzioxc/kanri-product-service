@@ -2,9 +2,35 @@ import { Request, Response } from "express";
 import * as ProductService from "../services/product.service";
 import { prisma } from "../utils/prisma";
 
-export const getAll = async (_req: Request, res: Response) => {
-  const products = await ProductService.getAll();
-  res.json(products);
+export const getAll = async (req: Request, res: Response) => {
+  const filters = {
+    search: req.query.search as string,
+    categoryId: req.query.categoryId as string,
+    status: req.query.status as string,
+    stockStatus: req.query.stockStatus as "normal" | "low" | "out",
+    page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
+    limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 10,
+  };
+
+  const result = await ProductService.getAll(filters);
+  res.json(result);
+};
+
+export const getLowStockProducts = async (req: Request, res: Response) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        stock: {
+          lt: 10,
+        },
+      },
+    });
+
+    return res.json(products);
+  } catch (error) {
+    console.error("Error al obtener productos con bajo stock:", error);
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
 };
 
 export const getById = async (req: Request, res: Response) => {
@@ -39,7 +65,6 @@ export const remove = async (req: Request, res: Response) => {
   res.status(204).send();
 };
 
-// ✅ NUEVO: PATCH /products/:id/decrement
 export const decrementStock = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { quantity } = req.body;
