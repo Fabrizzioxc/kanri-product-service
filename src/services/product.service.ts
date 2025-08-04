@@ -1,7 +1,7 @@
 import { prisma } from "../utils/prisma";
 import { ProductSchema, ProductUpdateSchema } from "../schemas/product.schema";
 
-type Filters = {
+export type Filters = {
   search?: string;
   categoryId?: string;
   status?: string;
@@ -75,8 +75,48 @@ export const getById = (id: string) => {
 
 export const create = async (data: unknown) => {
   const validated = ProductSchema.parse(data);
-  return prisma.product.create({ data: validated });
+
+  const exists = await prisma.product.findFirst({
+    where: { name: validated.name },
+  });
+  if (exists) throw new Error("Ya existe un producto con ese nombre.");
+
+  // Obtener el último código existente
+  const lastProduct = await prisma.product.findFirst({
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      productCode: true,
+    },
+    where: {
+      productCode: {
+        startsWith: "PROD-",
+      },
+    },
+  });
+
+  let nextNumber = 1;
+
+  if (lastProduct?.productCode) {
+    const match = lastProduct.productCode.match(/PROD-(\d+)/);
+    if (match) {
+      nextNumber = parseInt(match[1]) + 1;
+    }
+  }
+
+  const nextCode = `PROD-${String(nextNumber).padStart(3, "0")}`;
+
+  return prisma.product.create({
+    data: {
+      ...validated,
+      productCode: nextCode,
+    },
+  });
 };
+
+
+
 
 export const update = async (id: string, data: unknown) => {
   const validated = ProductUpdateSchema.parse(data);
@@ -87,4 +127,12 @@ export const remove = async (id: string) => {
   const product = await prisma.product.findUnique({ where: { id } });
   if (!product) throw new Error("Producto no encontrado.");
   await prisma.product.delete({ where: { id } });
+};
+
+export const getOutOfStockProducts = async () => {
+  return prisma.product.findMany({
+    where: { stock: 0 },
+    include: { category: true },
+    orderBy: { name: "asc" },
+  });
 };
