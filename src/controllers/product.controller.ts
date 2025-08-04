@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import * as ProductService from "../services/product.service";
 import { prisma } from "../utils/prisma";
+import ExcelJS from "exceljs";
+import { exportProductsToExcel } from "../services/export.service";
 
 export const getAll = async (req: Request, res: Response) => {
   const filters = {
@@ -110,3 +112,52 @@ export const incrementStock = async (req: Request, res: Response) => {
 
   res.json({ message: "Stock actualizado", updated });
 };
+
+export const exportLowStockToExcel = async (_req: Request, res: Response) => {
+  const products = await ProductService.getLowStockProducts();
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Stock Bajo");
+
+  worksheet.columns = [
+    { header: "ID", key: "id", width: 25 },
+    { header: "Nombre", key: "name", width: 30 },
+    { header: "Categoría", key: "category", width: 20 },
+    { header: "Stock", key: "stock", width: 10 },
+    { header: "Estado", key: "status", width: 15 },
+  ];
+
+  products.forEach((p) => {
+    worksheet.addRow({
+      id: p.id,
+      name: p.name,
+      category: p.category.name,
+      stock: p.stock,
+      status: p.status,
+    });
+  });
+
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", "attachment; filename=stock-bajo.xlsx");
+
+  await workbook.xlsx.write(res);
+  res.end();
+};
+
+export const getOutOfStockProducts = async (req: Request, res: Response) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        stock: 0,
+      },
+      include: { category: true },
+      orderBy: { name: "asc" },
+    });
+
+    return res.json(products);
+  } catch (error) {
+    console.error("Error al obtener productos sin stock:", error);
+    return res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+

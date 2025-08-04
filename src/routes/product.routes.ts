@@ -1,16 +1,20 @@
 import { Router } from "express";
 import * as productController from "../controllers/product.controller";
+import { exportToExcel } from "../controllers/export.controller";
 
 const router = Router();
 
 // ⚠️ Primero rutas específicas antes de :id
 router.get("/stock-low", productController.getLowStockProducts); // ✔️ antes
+router.get("/stock-out", productController.getOutOfStockProducts);
+router.get("/export/excel", exportToExcel);
 
 router.get("/", productController.getAll);
 router.get("/:id", productController.getById);
 router.post("/", productController.create);
 router.put("/:id", productController.update);
 router.delete("/:id", productController.remove);
+
 
 // ✅ Stock
 router.patch("/:id/decrement", productController.decrementStock);
