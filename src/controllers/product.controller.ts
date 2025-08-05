@@ -12,6 +12,7 @@ export const getAll = async (req: Request, res: Response) => {
     stockStatus: req.query.stockStatus as "normal" | "low" | "out",
     page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
     limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 10,
+    order: req.query.order as "asc" | "desc",
   };
 
   const result = await ProductService.getAll(filters);
