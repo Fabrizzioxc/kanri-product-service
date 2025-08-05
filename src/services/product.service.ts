@@ -8,58 +8,77 @@ export type Filters = {
   stockStatus?: "normal" | "low" | "out";
   page?: number;
   limit?: number;
+  order?: "asc" | "desc"; // ✅ aquí está la solución
 };
 
+
 export const getAll = async (filters: Filters = {}) => {
-  const { search, categoryId, status, stockStatus, page = 1, limit = 10 } = filters;
+  const {
+    search,
+    categoryId,
+    status,
+    stockStatus,
+    page = 1,
+    limit = 10,
+  } = filters
 
-  const where: any = {};
+  const where: Record<string, any> = {}
 
+  // Filtro por nombre
   if (search) {
     where.name = {
       contains: search,
       mode: "insensitive",
-    };
-  }
-
-  if (categoryId) {
-    where.categoryId = categoryId;
-  }
-
-  if (status === "Activo" || status === "Inactivo") {
-    where.status = status;
-  }
-
-  if (stockStatus) {
-    if (stockStatus === "normal") {
-      where.stock = { gte: 11 };
-    } else if (stockStatus === "low") {
-      where.stock = { gt: 0, lt: 11 };
-    } else if (stockStatus === "out") {
-      where.stock = 0;
     }
   }
 
-  const skip = (page - 1) * limit;
+  // Filtro por categoría
+  if (categoryId) {
+    where.categoryId = categoryId
+  }
+
+  // Filtro por estado
+  if (status === "Activo" || status === "Inactivo") {
+    where.status = status
+  }
+
+  // Filtro por stock
+  if (stockStatus) {
+    if (stockStatus === "normal") {
+      where.stock = { gte: 11 }
+    } else if (stockStatus === "low") {
+      where.stock = { gt: 0, lt: 11 }
+    } else if (stockStatus === "out") {
+      where.stock = 0
+    }
+  }
+
+  const skip = (page - 1) * limit
 
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: { category: true },
-      orderBy: { createdAt: "desc" },
+      include: {
+        category: true, // ✅ Para obtener el objeto completo de categoría
+      },
+      orderBy: {
+  createdAt: filters.order === "asc" ? "asc" : "desc",
+},
       skip,
       take: limit,
     }),
-    prisma.product.count({ where }),
-  ]);
+    prisma.product.count({
+      where,
+    }),
+  ])
 
   return {
     data: products,
     total,
     page,
     totalPages: Math.ceil(total / limit),
-  };
-};
+  }
+}
 
 export const getLowStockProducts = async () => {
   return prisma.product.findMany({
