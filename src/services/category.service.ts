@@ -22,3 +22,41 @@ export const update = async (id: string, data: unknown) => {
 export const remove = async (id: string) => {
   await prisma.category.delete({ where: { id } });
 };
+
+// En category.service.ts
+export const getPaginated = async (
+  search: string = '',
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit
+
+  const [data, total] = await Promise.all([
+    prisma.category.findMany({
+      where: {
+        name: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.category.count({
+      where: {
+        name: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      },
+    }),
+  ])
+
+  return {
+    data,
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
+  }
+}
