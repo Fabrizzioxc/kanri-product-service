@@ -1,10 +1,15 @@
 import { Request, Response } from "express";
 import * as categoryService from "../services/category.service";
 
-export const getAll = async (_req: Request, res: Response) => {
-  const categories = await categoryService.getAll();
-  res.json(categories);
-};
+export const getAll = async (req: Request, res: Response) => {
+  const search = String(req.query.search || '')
+  const page = parseInt(String(req.query.page || '1'), 10)
+  const limit = parseInt(String(req.query.limit || '10'), 10)
+
+  const result = await categoryService.getPaginated(search, page, limit)
+  res.json(result)
+}
+
 
 export const getById = async (req: Request, res: Response) => {
   const category = await categoryService.getById(req.params.id);
